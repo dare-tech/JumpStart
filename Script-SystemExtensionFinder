@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Script to scan a system for gathering kext and system extension information needed for Apple whitelisting
+# richard at richard - purves dot com
+# modified by Anthony McCarty @ Opal IT to include system extensions
+
+# Stop IFS linesplitting on spaces
+OIFS=$IFS
+IFS=$'\n'
+
+# Scan the following folders to find 3rd party kexts
+# /Applications
+# /Library/Extensions
+# /Library/Application Support
+
+echo "Searching Applications folder for KEXTs"
+applic=($( find /Applications -name "*.kext" ))
+
+echo "Searching Library Extensions folder for KEXTs"
+libext=($( find /Library/Extensions -name "*.kext" -maxdepth 1 ))
+
+echo "Searching Library Application Support folder for KEXTs"
+libapp=($( find /Library/Application\ Support -name "*.kext" ))
+
+echo ""
+
+# Merge the arrays together
+results=("${applic[@]}" "${libext[@]}" "${libapp[@]}")
+
+if [ ${#results[@]} != "0" ];
+then
+	for (( loop=0; loop<${#results[@]}; loop++ ))
+	do
+		# Get the Team Identifier for the kext
+		teamid=$( codesign -d -vvvv ${results[$loop]} 2>&1 | grep "Authority=Developer ID Application:" | cut -d"(" -f2 | tr -d ")" )
+
+		# Get the CFBundleIdentifier for the kext
+		bundid=$( defaults read "${results[$loop]}"/Contents/Info.plist CFBundleIdentifier )
+
+		echo "Team ID: $teamid  Bundle ID: $bundid"
+	done
+fi
+
+IFS=$OIFS
+
+echo ""
+
+##Check For System Extensions##
+echo "Checking for System Extensions..."
+echo ""
+systemextensions=$(systemextensionsctl list)
+
+sleep 5
+
+if [[ $systemextensions == "0 extension(s)" ]]
+then
+	echo "No system extensions found"
+else
+	echo $systemextensions
+fi
+
+echo ""
+
+sleep 2
+
+exit 0
