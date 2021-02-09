@@ -1,0 +1,6 @@
+#!/bin/sh
+serial=`/usr/sbin/system_profiler SPHardwareDataType | /usr/bin/awk '/Serial\ Number\ \(system\)/ {print $NF}'`
+/usr/sbin/scutil --set ComputerName "${serial}"
+/usr/sbin/scutil --set LocalHostName "${serial}"
+/usr/sbin/scutil --set HostName "${serial}"
+exit 0
